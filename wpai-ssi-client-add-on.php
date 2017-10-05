@@ -217,13 +217,77 @@
 			
 		} // end public function after_import
 		
-		private function acf_update_fields($post_id) {
+		private function acf_update_fields($post_id, $fields=false) {
 			// this function will update any checkbox, radio or select fields imported
-			// to new choice values to these fields when new values are present in the import
+			// to new add choice values to these fields when new values are present in the import
+			// this currently only works for top level fields
+			// plan to make it work in repeaters, flex fields, etc, later
 			
-			
+			// much of this is copied directly from the same process in ACF that allows
+			// addning new field choices
+			if ($fields === false) {
+				$fields = get_field_objects($post_id);
+			}
+			foreach ($fields as $field) {
+				if (!in_array($field['type'], array('select', 'checkbox', 'radio'))) {
+					// skip field
+					continue;
+				}
+				$value = get_field($field['key'], $post_id, false);
+				if (empty($value)) {
+					// no value, skip field
+					continue;
+				}
+				if (!is_array($value)) {
+					$value = array($value);
+				}
+				$selector = $field['ID'] ? $field['ID'] : $field['key'];
+				$field = acf_get_field($selector, true);
+				if (!$field['ID']) {
+					// could not get field
+					continue;
+				}
+				$update = false;
+				foreach ($value as $v) {
+					// unslash (fixes serialize single quote issue)
+					$v = wp_unslash($v);
+					// sanitize (remove tags)
+					$v = sanitize_text_field($v);
+					if (isset($field['choices'][$v])) {
+						// value already exists
+						continue;
+					}
+					$update = true;
+					// append
+					$field['choices'][$v] = $v;
+				} // end foreac value
+				if ($update) {
+					// added values
+					acf_update_field($field);
+				}
+			} // end foreach field
 			
 		} // end private function acf_update_fields
+		
+		private function write_to_file($value, $comment='') {
+			// this function for testing & debuggin only
+			$file = dirname(__FILE__).'/-data-'.date('Y-m-d-h-i').'.txt';
+			$handle = fopen($file, 'a');
+			ob_start();
+			if ($comment) {
+				echo $comment.":\r\n";
+			}
+			if (is_array($value) || is_object($value)) {
+				print_r($value);
+			} elseif (is_bool($value)) {
+				var_dump($value);
+			} else {
+				echo $value;
+			}
+			echo "\r\n\r\n";
+			fwrite($handle, ob_get_clean());
+			fclose($handle);
+		} // end private function write_to_file
 		
 	} // end class ssi_wpai_client_add_on
 	
