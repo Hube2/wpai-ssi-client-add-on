@@ -51,7 +51,14 @@
 			can be called during the import process to alter import values from just a
 			file name to a full URL on the current hosing site in order to allow the
 			files to be imported from that location.
+			
+			example of calling this function from import template
+			[image_import_loc({file_field_node_name[1]})]
 		*/
+		
+		// folder name of the root of this site where files will be stored
+		$folder_name = '__files_for_import';
+		
 		global $wpdb;
 		$value = trim($value);
 		$value = trim($value, ',');
@@ -78,7 +85,7 @@
 			if (is_ssl()) {
 				$location .= 's';
 			}
-			$location .= '://'.$_SERVER['HTTP_HOST'].'/__files_for_import/'.$value;
+			$location .= '://'.$_SERVER['HTTP_HOST'].'/'.$folder_name.'/'.$value;
 			$new_value[] = $location;
 			
 		}
@@ -189,6 +196,10 @@
 				FWP()->indexer->index($post_id);
 			}
 			
+			if (class_exists('acf')) {
+				$this->acf_update_fields($post_id);
+			}
+			
 		} // end public function post_saved
 		
 		public function after_import($import_id) {
@@ -205,6 +216,14 @@
 			}
 			
 		} // end public function after_import
+		
+		private function acf_update_fields($post_id) {
+			// this function will update any checkbox, radio or select fields imported
+			// to new choice values to these fields when new values are present in the import
+			
+			
+			
+		} // end private function acf_update_fields
 		
 	} // end class ssi_wpai_client_add_on
 	
